@@ -23,8 +23,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/uploads", express.static("uploads"));
 
+app.get("/redirect/reset-password/:token", (req, res) => {
+  const { token } = req.params;
+
+  return res.redirect(`jobhunt://reset-password/${token}`);
+});
+
 // Enable CORS
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Dev logging middleware
 if (process.env.NODE_ENV === "development") {

@@ -123,18 +123,24 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
   // email details
   const resetUrl = `${req.protocol}://${req.get(
     "host"
-  )}/api/v1/auth/resetpassword/${resetToken}`;
-  const message = `You are receiving this email because you has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+  )}/redirect/reset-password/${resetToken}`;
 
+  const htmlMessage = `
+    <p>You requested a password reset.</p>
+    <p>Tap the link below to open the app and reset your password:</p>
+    <a href="${resetUrl}">Reset Password</a>
+  `;
   // send email
   try {
     await sendEmail({
       email: user.email,
       subject: "Password reset token",
-      message,
+      html: htmlMessage,
     });
 
-    res.status(200).json({ success: true, data: "Email sent" });
+    res
+      .status(200)
+      .json({ success: true, data: "Reset link sent to your email." });
   } catch (error) {
     console.log(error);
     user.resetPasswordToken = undefined;
@@ -189,30 +195,29 @@ exports.logout = asyncHandler(async (req, res, next) => {
 
   // send response
   res.status(200).json({ success: true, data: {} });
-
 });
 
-
 const sendTokenResponse = (user, statusCode, res) => {
-  // create token
   const token = user.getSignedJwtToken();
 
-  // set cookie options
   const options = {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-    ), // convert to milliseconds
-    httpOnly: true, // cookie cannot be accessed by the browser
+    ),
+    httpOnly: true,
   };
 
-  // set secure flag to true if in production mode
   if (process.env.NODE_ENV === "production") {
     options.secure = true;
   }
+
+  const userObj = user.toObject();
+  delete userObj.password;
+  delete userObj.__v;
 
   // send response
   res
     .status(statusCode)
     .cookie("token", token, options)
-    .json({ success: true, token });
+    .json({ success: true, user: userObj, token });
 };
