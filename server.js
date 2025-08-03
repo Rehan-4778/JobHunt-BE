@@ -14,6 +14,8 @@ connectDB();
 
 // Route files
 const auth = require("./routes/auth");
+const jobs = require("./routes/jobs");
+const categories = require("./routes/categories");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +47,8 @@ if (process.env.NODE_ENV === "development") {
 
 // Mount Routers
 app.use("/api/v1/auth", auth);
+app.use("/api/v1/jobs", jobs);
+app.use("/api/v1/categories", categories);
 
 // Error handler
 app.use(errorHandler);
