@@ -15,13 +15,13 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get("/", authorize(["user", "admin"]), getAllJobs); // Get all active jobs (admin will also use this)
-router.get("/:id", authorize(["user", "admin"]), getJobById);
+router.get("/", authorize("user", "admin"), getAllJobs); // Get all active jobs (admin will also use this)
+router.get("/:id", authorize("user", "admin"), getJobById);
 
 router.post("/", authorize("employer"), createJob);
 router.get("/my/jobs", authorize("employer"), getMyJobs);
 router.put("/:id", authorize("employer"), updateJob);
 router.patch("/:id/status", authorize("employer"), updateJobStatus);
-router.delete("/:id", authorize(["user", "employer"]), deleteJob);
+router.delete("/:id", authorize("admin", "employer"), deleteJob);
 
 module.exports = router;

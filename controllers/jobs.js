@@ -1,113 +1,76 @@
-const ErrorResponse = require("../utils/errorResponse");
+const asyncHandler = require("../middlewares/async");
 const Job = require("../models/Job");
+const ErrorResponse = require("../utils/errorResponse");
 
 // Create a new job (Employer only)
-const createJob = async (req, res) => {
-  try {
-    const jobData = {
-      ...req.body,
-      employer: req.user.id,
-    };
+const createJob = asyncHandler(async (req, res, next) => {
+  const jobData = {
+    ...req.body,
+    employer: req.user.id,
+  };
 
-    if (typeof jobData.skillsRequired === "string") {
-      jobData.skillsRequired = jobData.skillsRequired.split(",");
-    }
-
-    const job = await Job.create(jobData);
-
-    const populatedJob = await Job.findById(job._id).populate(
-      "employer",
-      "name email company"
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "Job created successfully",
-      data: populatedJob,
-    });
-  } catch (error) {
-    return next(new ErrorResponse("Something went wrong!", 500));
+  if (typeof jobData.skillsRequired === "string") {
+    jobData.skillsRequired = jobData.skillsRequired.split(",");
   }
-};
 
-const getAllJobs = async (req, res, next) => {
-  try {
-    const isAdmin = req.user?.role === "admin";
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+  const job = await Job.create(jobData);
+  console.log(job);
 
-    const filters = {};
+  const populatedJob = await Job.findById(job._id).populate(
+    "employer",
+    "name email company"
+  );
 
-    if (!isAdmin) {
-      filters.status = "Active";
-    } else if (req.query.status) {
-      filters.status = req.query.status;
-    }
+  res.status(201).json({
+    success: true,
+    message: "Job created successfully",
+    data: populatedJob,
+  });
+});
 
-    if (req.query.category) filters.category = req.query.category;
-    if (req.query.jobType) filters.jobType = req.query.jobType;
-    if (req.query.location)
-      filters.location = new RegExp(req.query.location, "i");
+const getAllJobs = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.user?.role === "admin";
 
-    const jobs = await Job.find(filters)
-      .populate("employer", "name email company")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+  const filters = {};
 
-    const total = await Job.countDocuments(filters);
-    const totalPages = Math.ceil(total / limit);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        jobs,
-        currentPage: page,
-        totalPages,
-        totalJobs: total,
-      },
-    });
-  } catch (error) {
-    return next(new ErrorResponse("Something went wrong!", 500));
+  if (!isAdmin) {
+    filters.status = "Active";
+  } else if (req.query.status) {
+    filters.status = req.query.status;
   }
-};
+
+  if (req.query.category) filters.category = req.query.category;
+  if (req.query.jobType) filters.jobType = req.query.jobType;
+  if (req.query.location)
+    filters.location = new RegExp(req.query.location, "i");
+
+  const jobs = await Job.find(filters)
+    .populate("employer", "name email company")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    jobs,
+  });
+});
 
 // Get employer's own jobs (Employer only)
-const getMyJobs = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+const getMyJobs = asyncHandler(async (req, res, next) => {
+  const filters = { employer: req.user._id };
+  if (req.query.status) filters.status = req.query.status;
 
-    const filters = { employer: req.user.id };
-    if (req.query.status) filters.status = req.query.status;
+  const jobs = await Job.find(filters)
+    .populate("employer", "name email company")
+    .sort({ createdAt: -1 });
 
-    const jobs = await Job.find(filters)
-      .populate("employer", "name email company")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Job.countDocuments(filters);
-    const totalPages = Math.ceil(total / limit);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        jobs,
-        currentPage: page,
-        totalPages,
-        totalJobs: total,
-      },
-    });
-  } catch (error) {
-    return next(new ErrorResponse("Something went wrong!", 500));
-  }
-};
+  res.status(200).json({
+    success: true,
+    jobs,
+  });
+});
 
 // Get single job by ID (Public)
-const getJobById = async (req, res) => {
+const getJobById = asyncHandler(async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id).populate(
       "employer",
@@ -128,10 +91,10 @@ const getJobById = async (req, res) => {
   } catch (error) {
     return next(new ErrorResponse("Something went wrong!", 500));
   }
-};
+});
 
 // Update job (Employer - own jobs only)
-const updateJob = async (req, res) => {
+const updateJob = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id);
 
@@ -167,7 +130,7 @@ const updateJob = async (req, res) => {
 };
 
 // Update job status (Employer - own jobs only)
-const updateJobStatus = async (req, res) => {
+const updateJobStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const validStatuses = ["Active", "Closed", "Draft", "Paused", "Expired"];
@@ -202,33 +165,29 @@ const updateJobStatus = async (req, res) => {
 };
 
 // Delete job (Employer - own jobs, Admin - any job)
-const deleteJob = async (req, res) => {
-  try {
-    const job = await Job.findById(req.params.id);
+const deleteJob = asyncHandler(async (req, res, next) => {
+  const job = await Job.findById(req.params.id);
 
-    if (!job) {
-      return next(new ErrorResponse("Job not found", 404));
-    }
-
-    if (
-      req.user.role === "employer" &&
-      job.employer.toString() !== req.user.id
-    ) {
-      return next(
-        new ErrorResponse("You don't have access to delete this job", 403)
-      );
-    }
-
-    await Job.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      message: "Job deleted successfully",
-    });
-  } catch (error) {
-    return next(new ErrorResponse("Something went wrong!", 500));
+  if (!job) {
+    return next(new ErrorResponse("Job not found", 404));
   }
-};
+
+  if (
+    req.user.role === "employer" &&
+    job.employer.toString() !== req.user._id.toString()
+  ) {
+    return next(
+      new ErrorResponse("You don't have access to delete this job", 403)
+    );
+  }
+
+  await Job.findByIdAndDelete(req.params.id);
+
+  res.status(200).json({
+    success: true,
+    message: "Job deleted successfully",
+  });
+});
 
 module.exports = {
   createJob,

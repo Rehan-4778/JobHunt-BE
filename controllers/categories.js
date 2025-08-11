@@ -1,8 +1,9 @@
 const Category = require("../models/Category");
 const Job = require("../models/Job");
+const ErrorResponse = require("../utils/errorResponse");
 
 // Create a new category (Admin only)
-const createCategory = async (req, res) => {
+const createCategory = async (req, res, next) => {
   try {
     const { name, description } = req.body;
 
@@ -31,7 +32,7 @@ const createCategory = async (req, res) => {
 };
 
 // Get all categories (Public)
-const getAllCategories = async (req, res) => {
+const getAllCategories = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -43,7 +44,6 @@ const getAllCategories = async (req, res) => {
     }
 
     const categories = await Category.find(filters)
-      .populate("createdBy", "name email")
       .sort({ name: 1 })
       .skip(skip)
       .limit(limit);
@@ -54,7 +54,11 @@ const getAllCategories = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        categories,
+        categories: categories.map((category) => ({
+          _id: category._id,
+          name: category.name,
+          description: category.description,
+        })),
         currentPage: page,
         totalPages,
         totalCategories: total,
@@ -66,7 +70,7 @@ const getAllCategories = async (req, res) => {
 };
 
 // Get only active categories (Public)
-const getActiveCategories = async (req, res) => {
+const getActiveCategories = async (req, res, next) => {
   try {
     const categories = await Category.find({ isActive: true }).sort({
       name: 1,
@@ -82,7 +86,7 @@ const getActiveCategories = async (req, res) => {
 };
 
 // Get single category by ID (Public)
-const getCategoryById = async (req, res) => {
+const getCategoryById = async (req, res, next) => {
   try {
     const category = await Category.findById(req.params.id).populate(
       "createdBy",
@@ -103,7 +107,7 @@ const getCategoryById = async (req, res) => {
 };
 
 // Update category (Admin only)
-const updateCategory = async (req, res) => {
+const updateCategory = async (req, res, next) => {
   try {
     const category = await Category.findById(req.params.id);
 
@@ -123,7 +127,7 @@ const updateCategory = async (req, res) => {
       req.params.id,
       req.body,
       { new: true }
-    ).populate("createdBy", "name email");
+    );
 
     res.status(200).json({
       success: true,
@@ -136,7 +140,7 @@ const updateCategory = async (req, res) => {
 };
 
 // Toggle category active/inactive (Admin only)
-const toggleCategoryStatus = async (req, res) => {
+const toggleCategoryStatus = async (req, res, next) => {
   try {
     const category = await Category.findById(req.params.id);
 
@@ -164,7 +168,7 @@ const toggleCategoryStatus = async (req, res) => {
 };
 
 // Delete category (Admin only)
-const deleteCategory = async (req, res) => {
+const deleteCategory = async (req, res, next) => {
   try {
     const category = await Category.findById(req.params.id);
 
@@ -195,7 +199,7 @@ const deleteCategory = async (req, res) => {
 };
 
 // Get jobs by category (Public)
-const getJobsByCategory = async (req, res) => {
+const getJobsByCategory = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;

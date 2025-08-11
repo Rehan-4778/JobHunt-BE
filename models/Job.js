@@ -15,12 +15,19 @@ const jobSchema = new mongoose.Schema(
     jobType: {
       type: String,
       required: true,
-      enum: ["Full-time", "Part-time", "Contract", "Internship", "Freelance"],
+      enum: [
+        "full-time",
+        "part-time",
+        "contract",
+        "internship",
+        "freelance",
+        "remote",
+      ],
     },
     experienceLevel: {
       type: String,
       required: true,
-      enum: ["Entry Level", "Junior", "Mid Level", "Senior", "Executive"],
+      enum: ["entry", "junior", "mid", "senior", "lead"],
     },
     location: {
       type: String,
@@ -32,12 +39,12 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        "High School",
-        "Bachelor's Degree",
-        "Master's Degree",
-        "PhD",
-        "Diploma",
-        "Certificate",
+        "high-school",
+        "bachelors",
+        "masters",
+        "phd",
+        "diploma",
+        "not-required",
       ],
     },
     salary: {
@@ -53,7 +60,7 @@ const jobSchema = new mongoose.Schema(
     gender: {
       type: String,
       required: true,
-      enum: ["Male", "Female", "Any", "Prefer not to say"],
+      enum: ["male", "female", "any", "prefer-not-to-say"],
     },
 
     requirements: {

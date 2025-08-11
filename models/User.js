@@ -71,4 +71,13 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+UserSchema.pre("remove", async function (next) {
+  // Example: delete all jobs owned by this user
+  await this.model("Job").deleteMany({ createdBy: this._id });
+  next();
+});
+
+
+UserSchema.index({ role: 1 });
+
 module.exports = mongoose.model("User", UserSchema);
