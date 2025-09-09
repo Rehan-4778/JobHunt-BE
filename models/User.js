@@ -4,9 +4,13 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
 const UserSchema = new mongoose.Schema({
-  name: {
+  firstName: {
     type: String,
-    required: [true, "Please add a name."],
+    required: [true, "Please add a first name."],
+  },
+  lastName: {
+    type: String,
+    required: [true, "Please add a last name."],
   },
   email: {
     type: String,
@@ -17,7 +21,29 @@ const UserSchema = new mongoose.Schema({
       "Please add a valid email.",
     ],
   },
-
+  mobileNo: {
+    type: String,
+    required: [true, "Please add a mobile number."],
+    unique: true,
+  },
+  address: {
+    type: String,
+    required: [true, "Please add an address."],
+  },
+  city: {
+    type: String,
+    required: [true, "Please add a city."],
+  },
+  cvUrl: {
+    type: String,
+    required: function() {
+      return this.role === "user";
+    },
+  },
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
   role: {
     type: String,
     required: [true, "Please add a role"],
@@ -79,5 +105,6 @@ UserSchema.pre("remove", async function (next) {
 
 
 UserSchema.index({ role: 1 });
+UserSchema.index({ isApproved: 1 });
 
 module.exports = mongoose.model("User", UserSchema);

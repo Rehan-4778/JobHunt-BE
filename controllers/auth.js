@@ -8,14 +8,49 @@ const crypto = require("crypto");
 // @route             POST  api/v1/auth/register
 // @access            Public
 exports.register = asyncHandler(async (req, res, next) => {
+  // Check for file validation errors
+  if (req.fileValidationError) {
+    return next(new ErrorResponse(req.fileValidationError, 400));
+  }
+
   // create user
-  const { name, email, password, role } = req.body;
-  const user = await User.create({
-    name,
+  const { 
+    firstName, 
+    lastName, 
+    email, 
+    mobileNo, 
+    address, 
+    city, 
+    password, 
+    role 
+  } = req.body;
+
+  console.log('Request body:', req.body);
+  console.log('Uploaded file:', req.file);
+
+  // Check if CV is required for job seekers
+  if (role === "user" && !req.file) {
+    return next(new ErrorResponse("CV is required for job seekers", 400));
+  }
+
+  // Prepare user data
+  const userData = {
+    firstName,
+    lastName,
     email,
+    mobileNo,
+    address,
+    city,
     password,
     role,
-  });
+  };
+
+  // Add CV URL if file was uploaded
+  if (req.file) {
+    userData.cvUrl = req.file.path;
+  }
+
+  const user = await User.create(userData);
 
   // send token response
   sendTokenResponse(user, 200, res);
@@ -44,6 +79,11 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   if (!isMatch) {
     return next(new ErrorResponse("Invalid credentials", 401));
+  }
+
+  // check if user is approved
+  if (user.role !== "admin" && !user.isApproved) {
+    return next(new ErrorResponse("Your application is pending approval from admin. Please wait for approval.", 403));
   }
 
   // send token response
@@ -195,6 +235,48 @@ exports.logout = asyncHandler(async (req, res, next) => {
 
   // send response
   res.status(200).json({ success: true, data: {} });
+});
+
+// @description       Get all pending user applications (Admin only)
+// @route             GET  api/v1/auth/pending-applications
+// @access            Private (Admin only)
+exports.getPendingApplications = asyncHandler(async (req, res, next) => {
+  const pendingUsers = await User.find({ isApproved: false }).select("-password");
+
+  res.status(200).json({
+    success: true,
+    count: pendingUsers.length,
+    data: pendingUsers,
+  });
+});
+
+// @description       Approve or reject user application (Admin only)
+// @route             PATCH  api/v1/auth/approve/:id
+// @access            Private (Admin only)
+exports.approveUser = asyncHandler(async (req, res, next) => {
+  console.log('ok -- ', req.body);
+  const { isApproved } = req.body;
+  const userId = req.params.id;
+
+  console.log(req.body);
+  console.log(req.params);
+
+  // Check if user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorResponse("User not found", 404));
+  }
+
+  // Update approval status
+  user.isApproved = isApproved;
+  await user.save();
+
+  // send response
+  res.status(200).json({ 
+    success: true, 
+    data: user,
+    message: `User application ${isApproved ? 'approved' : 'rejected'} successfully`
+  });
 });
 
 const sendTokenResponse = (user, statusCode, res) => {
