@@ -24,7 +24,6 @@ const UserSchema = new mongoose.Schema({
   mobileNo: {
     type: String,
     required: [true, "Please add a mobile number."],
-    unique: true,
   },
   address: {
     type: String,
@@ -36,7 +35,7 @@ const UserSchema = new mongoose.Schema({
   },
   cvUrl: {
     type: String,
-    required: function() {
+    required: function () {
       return this.role === "user";
     },
   },
@@ -53,7 +52,7 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, "Please add a password."],
-    minlength: 6,
+    minlength: 4,
     select: false,
   },
 
@@ -102,7 +101,6 @@ UserSchema.pre("remove", async function (next) {
   await this.model("Job").deleteMany({ createdBy: this._id });
   next();
 });
-
 
 UserSchema.index({ role: 1 });
 UserSchema.index({ isApproved: 1 });

@@ -14,19 +14,38 @@ exports.register = asyncHandler(async (req, res, next) => {
   }
 
   // create user
-  const { 
-    firstName, 
-    lastName, 
-    email, 
-    mobileNo, 
-    address, 
-    city, 
-    password, 
-    role 
+  const {
+    firstName,
+    lastName,
+    email,
+    mobileNo,
+    address,
+    city,
+    password,
+    role,
   } = req.body;
 
-  console.log('Request body:', req.body);
-  console.log('Uploaded file:', req.file);
+  // Check if email already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return next(
+      new ErrorResponse(
+        "Email address is already registered. Please use a different email.",
+        400
+      )
+    );
+  }
+
+  // Check if mobile number already exists
+  const existingMobile = await User.findOne({ mobileNo });
+  if (existingMobile) {
+    return next(
+      new ErrorResponse(
+        "Mobile number is already registered. Please use a different mobile number.",
+        400
+      )
+    );
+  }
 
   // Check if CV is required for job seekers
   if (role === "user" && !req.file) {
@@ -83,7 +102,12 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   // check if user is approved
   if (user.role !== "admin" && !user.isApproved) {
-    return next(new ErrorResponse("Your application is pending approval from admin. Please wait for approval.", 403));
+    return next(
+      new ErrorResponse(
+        "Your application is pending approval from admin. Please wait for approval.",
+        403
+      )
+    );
   }
 
   // send token response
@@ -241,7 +265,9 @@ exports.logout = asyncHandler(async (req, res, next) => {
 // @route             GET  api/v1/auth/pending-applications
 // @access            Private (Admin only)
 exports.getPendingApplications = asyncHandler(async (req, res, next) => {
-  const pendingUsers = await User.find({ isApproved: false }).select("-password");
+  const pendingUsers = await User.find({ isApproved: false }).select(
+    "-password"
+  );
 
   res.status(200).json({
     success: true,
@@ -254,7 +280,7 @@ exports.getPendingApplications = asyncHandler(async (req, res, next) => {
 // @route             PATCH  api/v1/auth/approve/:id
 // @access            Private (Admin only)
 exports.approveUser = asyncHandler(async (req, res, next) => {
-  console.log('ok -- ', req.body);
+  console.log("ok -- ", req.body);
   const { isApproved } = req.body;
   const userId = req.params.id;
 
@@ -271,11 +297,44 @@ exports.approveUser = asyncHandler(async (req, res, next) => {
   user.isApproved = isApproved;
   await user.save();
 
+  // Send email notification to user
+  try {
+    const subject = isApproved
+      ? "🎉 Your JHP Application Has Been Approved!"
+      : "Application Status Update - JHP";
+
+    const htmlMessage = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #28a745;">🎉 Congratulations!</h2>
+          <p>Dear ${user.firstName} ${user.lastName},</p>
+          <p>Great news! Your JHP application has been <strong>approved</strong> by our admin team.</p>
+          <p>Best regards,<br>The JHP Team</p>
+        </div>
+      `;
+
+    await sendEmail({
+      email: user.email,
+      subject: subject,
+      html: htmlMessage,
+    });
+
+    console.log(
+      `Email sent to ${user.email} for application ${
+        isApproved ? "approval" : "rejection"
+      }`
+    );
+  } catch (emailError) {
+    console.error("Failed to send email notification:", emailError);
+    // Don't fail the request if email fails, just log the error
+  }
+
   // send response
-  res.status(200).json({ 
-    success: true, 
+  res.status(200).json({
+    success: true,
     data: user,
-    message: `User application ${isApproved ? 'approved' : 'rejected'} successfully`
+    message: `User application ${
+      isApproved ? "approved" : "rejected"
+    } successfully${isApproved ? " and email notification sent" : ""}`,
   });
 });
 
@@ -303,5 +362,3 @@ const sendTokenResponse = (user, statusCode, res) => {
     .cookie("token", token, options)
     .json({ success: true, user: userObj, token });
 };
-
-
