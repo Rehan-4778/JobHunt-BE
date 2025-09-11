@@ -36,17 +36,6 @@ exports.register = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Check if mobile number already exists
-  const existingMobile = await User.findOne({ mobileNo });
-  if (existingMobile) {
-    return next(
-      new ErrorResponse(
-        "Mobile number is already registered. Please use a different mobile number.",
-        400
-      )
-    );
-  }
-
   // Check if CV is required for job seekers
   if (role === "user" && !req.file) {
     return next(new ErrorResponse("CV is required for job seekers", 400));
