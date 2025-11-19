@@ -21,18 +21,6 @@ const UserSchema = new mongoose.Schema({
       "Please add a valid email.",
     ],
   },
-  mobileNo: {
-    type: String,
-    required: [true, "Please add a mobile number."],
-  },
-  address: {
-    type: String,
-    required: [true, "Please add an address."],
-  },
-  city: {
-    type: String,
-    required: [true, "Please add a city."],
-  },
   cvUrl: {
     type: String,
     required: function () {

@@ -8,19 +8,12 @@ const crypto = require("crypto");
 // @route             POST  api/v1/auth/register
 // @access            Public
 exports.register = asyncHandler(async (req, res, next) => {
-  // Check for file validation errors
-  if (req.fileValidationError) {
-    return next(new ErrorResponse(req.fileValidationError, 400));
-  }
 
   // create user
   const {
     firstName,
     lastName,
     email,
-    mobileNo,
-    address,
-    city,
     password,
     role,
   } = req.body;
@@ -36,27 +29,14 @@ exports.register = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Check if CV is required for job seekers
-  if (role === "user" && !req.file) {
-    return next(new ErrorResponse("CV is required for job seekers", 400));
-  }
-
   // Prepare user data
   const userData = {
     firstName,
     lastName,
     email,
-    mobileNo,
-    address,
-    city,
     password,
     role,
   };
-
-  // Add CV URL if file was uploaded
-  if (req.file) {
-    userData.cvUrl = req.file.path;
-  }
 
   const user = await User.create(userData);
 

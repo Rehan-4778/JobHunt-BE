@@ -14,9 +14,8 @@ const {
   approveUser,
 } = require("../controllers/auth");
 const { protect, authorize } = require("../middlewares/auth");
-const { upload, handleUploadError } = require("../middlewares/cvUpload");
 
-router.route("/register").post(upload.single("cv"), handleUploadError, register);
+router.route("/register").post(register);
 router.route("/login").post(login);
 router.route("/me").get(protect, getMe);
 router.route("/updatedetails").put(protect, updateDetails);
