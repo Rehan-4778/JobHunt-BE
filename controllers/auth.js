@@ -8,15 +8,10 @@ const crypto = require("crypto");
 // @route             POST  api/v1/auth/register
 // @access            Public
 exports.register = asyncHandler(async (req, res, next) => {
+  console.log("HERE");
 
   // create user
-  const {
-    firstName,
-    lastName,
-    email,
-    password,
-    role,
-  } = req.body;
+  const { firstName, lastName, email, password, role } = req.body;
 
   // Check if email already exists
   const existingUser = await User.findOne({ email });

@@ -17,15 +17,12 @@ const UserSchema = new mongoose.Schema({
     required: [true, "Please add an email."],
     unique: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, // regex for email
+      /^[\w.+-]+@[\w.-]+\.\w{2,}$/, // regex for email (allows + for aliases)
       "Please add a valid email.",
     ],
   },
   cvUrl: {
     type: String,
-    required: function () {
-      return this.role === "user";
-    },
   },
   isApproved: {
     type: Boolean,
@@ -46,6 +43,13 @@ const UserSchema = new mongoose.Schema({
 
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+
+  savedJobs: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job",
+    },
+  ],
 
   createdAt: {
     type: Date,

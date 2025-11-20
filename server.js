@@ -17,6 +17,7 @@ const auth = require("./routes/auth");
 const users = require("./routes/users");
 const jobs = require("./routes/jobs");
 const categories = require("./routes/categories");
+const applications = require("./routes/applications");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,7 @@ app.use("/api/v1/auth", auth);
 app.use("/api/v1/users", users);
 app.use("/api/v1/jobs", jobs);
 app.use("/api/v1/categories", categories);
+app.use("/api/v1/applications", applications);
 
 // Error handler
 app.use(errorHandler);

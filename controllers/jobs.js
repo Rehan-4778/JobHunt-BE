@@ -1,5 +1,6 @@
 const asyncHandler = require("../middlewares/async");
 const Job = require("../models/Job");
+const User = require("../models/User");
 const ErrorResponse = require("../utils/errorResponse");
 
 // Create a new job (Employer only)
@@ -33,24 +34,57 @@ const getAllJobs = asyncHandler(async (req, res, next) => {
 
   const filters = {};
 
+  // Status filter
   if (!isAdmin) {
     filters.status = "Active";
   } else if (req.query.status) {
     filters.status = req.query.status;
   }
 
+  // Basic filters
   if (req.query.category) filters.category = req.query.category;
   if (req.query.jobType) filters.jobType = req.query.jobType;
   if (req.query.location)
     filters.location = new RegExp(req.query.location, "i");
 
+  // Additional filters
+  if (req.query.experienceLevel) filters.experienceLevel = req.query.experienceLevel;
+  if (req.query.gender) filters.gender = req.query.gender;
+
+  // Salary filter - supports range format "min-max" or exact value
+  if (req.query.salary) {
+    filters.salary = new RegExp(req.query.salary, "i");
+  }
+
+  // Age filter - supports range format or exact value
+  if (req.query.age) {
+    filters.age = new RegExp(req.query.age, "i");
+  }
+
+  // Pagination
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
+  const skip = (page - 1) * pageSize;
+
+  // Get total count for pagination metadata
+  const total = await Job.countDocuments(filters);
+
   const jobs = await Job.find(filters)
     .populate("employer", "name email company")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
 
   res.status(200).json({
     success: true,
     jobs,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      hasMore: page * pageSize < total,
+    },
   });
 });
 
@@ -189,6 +223,87 @@ const deleteJob = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Save a job (User only)
+const saveJob = asyncHandler(async (req, res, next) => {
+  const jobId = req.params.id;
+
+  const job = await Job.findById(jobId);
+  if (!job) {
+    return next(new ErrorResponse("Job not found", 404));
+  }
+
+  const user = await User.findById(req.user.id);
+
+  // Check if job is already saved
+  if (user.savedJobs && user.savedJobs.includes(jobId)) {
+    return res.status(200).json({
+      success: true,
+      message: "Job already saved",
+    });
+  }
+
+  // Use findByIdAndUpdate to avoid validation issues
+  await User.findByIdAndUpdate(
+    req.user.id,
+    { $addToSet: { savedJobs: jobId } },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Job saved successfully",
+  });
+});
+
+// Unsave a job (User only)
+const unsaveJob = asyncHandler(async (req, res, next) => {
+  const jobId = req.params.id;
+
+  // Use findByIdAndUpdate to avoid validation issues
+  await User.findByIdAndUpdate(
+    req.user.id,
+    { $pull: { savedJobs: jobId } },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Job unsaved successfully",
+  });
+});
+
+// Get saved jobs (User only)
+const getSavedJobs = asyncHandler(async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return next(new ErrorResponse("User not found", 404));
+    }
+
+    // Handle case where savedJobs doesn't exist on user
+    if (!user.savedJobs || user.savedJobs.length === 0) {
+      return res.status(200).json({
+        success: true,
+        jobs: [],
+      });
+    }
+
+    // Fetch the saved jobs with employer populated
+    const jobs = await Job.find({ _id: { $in: user.savedJobs } })
+      .populate("employer", "name email company")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      jobs: jobs || [],
+    });
+  } catch (error) {
+    console.error("getSavedJobs error:", error);
+    return next(new ErrorResponse("Failed to fetch saved jobs", 500));
+  }
+});
+
 module.exports = {
   createJob,
   getAllJobs,
@@ -197,4 +312,7 @@ module.exports = {
   updateJob,
   updateJobStatus,
   deleteJob,
+  saveJob,
+  unsaveJob,
+  getSavedJobs,
 };
