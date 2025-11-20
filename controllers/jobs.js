@@ -1,5 +1,6 @@
 const asyncHandler = require("../middlewares/async");
 const Job = require("../models/Job");
+const JobApplication = require("../models/JobApplication");
 const User = require("../models/User");
 const ErrorResponse = require("../utils/errorResponse");
 
@@ -100,6 +101,36 @@ const getMyJobs = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     jobs,
+  });
+});
+
+// Get employer statistics (Employer only)
+const getEmployerStats = asyncHandler(async (req, res, next) => {
+  const employerId = req.user._id;
+
+  // Get all jobs by this employer
+  const jobs = await Job.find({ employer: employerId });
+  const jobIds = jobs.map(job => job._id);
+
+  // Get total jobs count
+  const totalJobs = jobs.length;
+
+  // Get all applications for employer's jobs
+  const applications = await JobApplication.find({ job: { $in: jobIds } });
+
+  // Calculate stats
+  const totalApplicants = applications.length;
+  const shortlisted = applications.filter(app => app.status === 'shortlisted').length;
+  const hired = applications.filter(app => app.status === 'hired').length;
+
+  res.status(200).json({
+    success: true,
+    stats: {
+      jobsPosted: totalJobs,
+      applicants: totalApplicants,
+      shortlisted: shortlisted,
+      hired: hired,
+    },
   });
 });
 
@@ -308,6 +339,7 @@ module.exports = {
   createJob,
   getAllJobs,
   getMyJobs,
+  getEmployerStats,
   getJobById,
   updateJob,
   updateJobStatus,

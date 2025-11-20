@@ -9,6 +9,7 @@ const {
 } = require("../controllers/applications");
 
 const { protect, authorize } = require("../middlewares/auth");
+const { upload, handleUploadError } = require("../middlewares/cvUpload");
 
 const router = express.Router();
 
@@ -18,7 +19,13 @@ router.use(protect);
 // User routes (job seeker)
 router.get("/my", authorize("user"), getMyApplications);
 router.get("/check/:jobId", authorize("user"), checkApplicationStatus);
-router.post("/:jobId", authorize("user"), createApplication);
+router.post(
+  "/:jobId",
+  authorize("user"),
+  upload.single("cv"),
+  handleUploadError,
+  createApplication
+);
 
 // Employer routes
 router.get("/", authorize("employer"), getAllApplications);

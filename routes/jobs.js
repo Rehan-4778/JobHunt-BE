@@ -3,6 +3,7 @@ const {
   createJob,
   getAllJobs,
   getMyJobs,
+  getEmployerStats,
   getJobById,
   updateJob,
   updateJobStatus,
@@ -27,6 +28,7 @@ router.delete("/:id/save", protect, authorize("user"), unsaveJob);
 // Employer routes
 router.post("/", protect, authorize("employer"), createJob);
 router.get("/my/jobs", protect, authorize("employer"), getMyJobs);
+router.get("/my/stats", protect, authorize("employer"), getEmployerStats);
 router.put("/:id", protect, authorize("employer"), updateJob);
 router.patch("/:id/status", protect, authorize("employer"), updateJobStatus);
 router.delete("/:id", protect, authorize("admin", "employer"), deleteJob);

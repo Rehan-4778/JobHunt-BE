@@ -18,6 +18,7 @@ const users = require("./routes/users");
 const jobs = require("./routes/jobs");
 const categories = require("./routes/categories");
 const applications = require("./routes/applications");
+const notifications = require("./routes/notifications");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -53,6 +54,7 @@ app.use("/api/v1/users", users);
 app.use("/api/v1/jobs", jobs);
 app.use("/api/v1/categories", categories);
 app.use("/api/v1/applications", applications);
+app.use("/api/v1/notifications", notifications);
 
 // Error handler
 app.use(errorHandler);
